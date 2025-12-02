@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>🎀 Birthday Surprise (HTML) 🎀</title>
+<style>
+  :root{
+    --bg:#FFE6F2;
+    --popup-bg:#cceeff;
+    --text:#5A3E36;
+    --btn-bg:#FF9EC4;
+    --btn-fg:#fff;
+    --lyric-bg: rgba(255,255,255,0.85);
+    --font-main: "Georgia", serif;
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    font-family: var(--font-main);
+    background: linear-gradient(180deg,#fff0f6 0%, #ffe6f2 100%);
+    color:var(--text);
+  }
+
+  .container {
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:30px;
+  }
+
+  .card {
+    background: white;
+    border-radius:18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    padding:28px;
+    text-align:center;
+    max-width:720px;
+    width:100%;
+  }
+
+  h1 { margin:0 0 12px 0; font-size:28px; }
+  p { margin:0 0 18px 0; color:#5a3e3688; }
+
+  .btn {
+    font-size:18px;
+    padding:14px 32px;
+    border-radius:14px;
+    border:0;
+    background:linear-gradient(180deg,var(--btn-bg),#ff7fb0);
+    color:var(--btn-fg);
+    cursor:pointer;
+  }
+
+  .overlay {
+    position:fixed;
+    inset:0;
+    display:none;
+    background: var(--popup-bg);
+    z-index:1000;
+    overflow:hidden;
+  }
+
+  .overlay.active { display:block; }
+
+  .lyric-frame {
+    position: absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    max-width:80%;
+    width:720px;
+    padding:18px;
+    border-radius:14px;
+    text-align:center;
+    background: var(--lyric-bg);
+  }
+
+  .lyric-line {
+    font-size:20px;
+    margin:6px 0;
+    font-weight:700;
+    color:#2d2d2d;
+  }
+
+  .flowers {
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    overflow:hidden;
+  }
+
+  .flower {
+    position:absolute;
+    width:34px;
+    height:34px;
+    opacity:0.95;
+  }
+
+  .flower.fallback {
+    border-radius:50%;
+    background: radial-gradient(circle at 30% 30%, #ffd2e0, #ffb3d1);
+  }
+
+  .close-btn {
+    position:absolute;
+    left:18px;
+    top:18px;
+    padding:8px 12px;
+    border-radius:10px;
+    border:0;
+    background:#fff;
+    cursor:pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Birthday Surprise</h1>
+      <p><center>Click the button to reveal your surprise!.</center></p>
+      <button id="openSurprise" class="btn">Click For Surprise ✨</button>
+      <p class="small-muted"><center>Let's Have Some Fun, My Dear Love 😘.</center></p>
+    </div>
+  </div>
+
+  <div id="overlay" class="overlay">
+    <button id="closeBtn" class="close-btn">Close ✕</button>
+    <div class="flowers" id="flowersLayer"></div>
+
+    <div class="lyric-frame">
+      <div id="lyricLines"></div>
+      <div id="subNote" style="font-size:13px;opacity:.7;margin-top:5px;">— Enjoy the surprise —</div>
+    </div>
+  </div>
+
+  <audio id="player"></audio>
+
+<script>
+let flowerList = [];
+let flowerAnimationActive = false;
+(() => {
+  const player = document.getElementById('player');
+  const overlay = document.getElementById('overlay');
+  const openBtn = document.getElementById('openSurprise');
+  const closeBtn = document.getElementById('closeBtn');
+  const lyricLines = document.getElementById('lyricLines');
+  const flowersLayer = document.getElementById('flowersLayer');
+
+  // Lyrics
+  const birthdayLyrics = [
+    {text:"Happy Birthday To You Jee", time:3000},
+    {text:"Cake Shake Hai Toh Phir Bulao Jee", time:5000},
+    {text:"Aise Hi Tum Buddhee Hote Rahoge", time:9000},
+    {text:"Humko Usse Kya Matlab Batao Jee", time:13000}
+  ];
+
+  const mistakeLyrics = [
+    {text:"Ohh oh sorry, my mistake,", time:0},
+    {text:"Now playing the song dedicated to you...", time:2000}
+  ];
+
+  const darkhaastLyrics = [
+    {text:"Iss qadar tu mujhe pyaar kar,", time:0},
+    {text:"Jise kabhi na main sakoon phir bhula,", time:15000},
+    {text:"Zindagi layi humein yahan,", time:25000},
+    {text:"Koi iraada toh raha hoga bhala,", time:33000},
+    {text:"Ki darkhaast hai yeh,", time:42000},
+    {text:"Jo aayi raat hai yeh,", time:46000},
+    {text:"Tu meri bahon mein duniya bhula de,", time:51000},
+    {text:"Jo ab lamhaat hai yeh,", time:58000},
+    {text:"Bade hi khaas hai yeh,", time:63000},
+    {text:"Tu meri bahon mein duniya bhula de,", time:69000},
+    {text:"Raahon mein mere sath chal tu,", time:86000},
+    {text:"Thaame mera hath chal tu,", time:90000},
+    {text:"Waqt jitna bhi ho haasil,", time:94000},
+    {text:"Sara mere naam kar tu", time:98000},
+    {text:"Waqt jitna bhi ho haasil,", time:103000},
+    {text:"Sara mere naam kar tu", time:107000},
+    {text:"Ke armaan hai yeh,", time:112000},
+    {text:"Guzaarish jaan hai yeh,", time:116000},
+    {text:"Tu meri baahon mein duniya bhula de,", time:121000},
+    {text:"Jo ab lamhaat hai yeh,", time:128000},
+	{text:"Bade hi khas hai yeh,", time:134000},
+    {text:"Tu meri baahon mein duniya bhula de", time:140000}
+  ];
+
+  const sequence = [
+    {src:"Birthday.mp3", lyrics:birthdayLyrics},
+    {src:"Mistake.mp3", lyrics:mistakeLyrics},
+    {src:"Darkhaast1.mp3", lyrics:darkhaastLyrics}
+  ];
+
+  // Force play unlock
+  function forcePlay() {
+    player.play().catch(() => {
+      overlay.addEventListener("click", () => player.play(), { once:true });
+    });
+  }
+
+  // Play sequence
+  function playSequence() {
+    let index = 0;
+
+    function nextTrack() {
+      if (index >= sequence.length) return;
+
+      const entry = sequence[index];
+      player.src = entry.src;
+      player.load();
+      player.currentTime = 0;
+
+      forcePlay();
+      startLyrics(entry.lyrics);
+
+      player.onended = () => {
+        clearLyrics();
+        index++;
+        setTimeout(nextTrack, 400);
+      };
+    }
+    nextTrack();
+  }
+
+  // Lyrics
+  let lyricTimer;
+  function startLyrics(arr){
+    clearLyrics();
+    let i = 0;
+
+    lyricTimer = setInterval(()=>{
+      const now = player.currentTime*1000;
+      if(i < arr.length && now >= arr[i].time){
+        let div = document.createElement("div");
+        div.className = "lyric-line";
+        div.textContent = arr[i].text;
+        lyricLines.appendChild(div);
+        i++;
+      }
+    },120);
+  }
+
+  function clearLyrics(){
+    lyricLines.innerHTML = "";
+    if(lyricTimer) clearInterval(lyricTimer);
+  }
+
+  // Flowers
+  function startFlowerRain() {
+  flowerAnimationActive = true;
+  flowersLayer.innerHTML = "";
+  flowerList = [];
+
+  const createFlower = () => {
+    const f = document.createElement("div");
+    f.className = "flower";
+    f.style.backgroundImage = 'url("flower.png")';
+    f.style.backgroundSize = 'cover';
+
+    const size = 24 + Math.random()*20;
+    const speed = 1 + Math.random()*1.4;
+    const x = Math.random() * window.innerWidth;
+    const y = -40 - Math.random()*200;
+    const rotate = Math.random()*360;
+    const rotateSpeed = (Math.random()*0.8 - 0.4);
+
+    f.dataset.x = x;
+    f.dataset.y = y;
+    f.dataset.speed = speed;
+    f.dataset.rotate = rotate;
+    f.dataset.rotateSpeed = rotateSpeed;
+
+    f.style.width = size + "px";
+    f.style.height = size + "px";
+    f.style.left = x + "px";
+    f.style.top = y + "px";
+
+    flowersLayer.appendChild(f);
+    flowerList.push(f);
+  };
+
+  // Create initial flowers
+  for (let i = 0; i < 25; i++) createFlower();
+
+  // Animation loop
+  function animate() {
+    if (!flowerAnimationActive) return;
+
+    const h = window.innerHeight;
+    const w = window.innerWidth;
+
+    flowerList.forEach(f => {
+      let y = parseFloat(f.dataset.y);
+      let x = parseFloat(f.dataset.x);
+      let speed = parseFloat(f.dataset.speed);
+      let rot = parseFloat(f.dataset.rotate);
+      let rotSpeed = parseFloat(f.dataset.rotateSpeed);
+
+      y += speed;
+      rot += rotSpeed;
+
+      f.dataset.y = y;
+      f.dataset.rotate = rot;
+
+      f.style.top = y + "px";
+      f.style.left = x + "px";
+      f.style.transform = `rotate(${rot}deg)`;
+
+      // When flower goes out, respawn
+      if (y > h + 50) {
+        f.dataset.y = -40;
+        f.dataset.x = Math.random() * w;
+        f.dataset.speed = 1 + Math.random()*1.4;
+        f.dataset.rotateSpeed = (Math.random()*0.8 - 0.4);
+      }
+    });
+
+    // Add new flowers occasionally
+    if (Math.random() < 0.04) createFlower();
+
+    requestAnimationFrame(animate);
+  }
+
+  requestAnimationFrame(animate);
+}
+
+function stopFlowerRain() {
+  flowerAnimationActive = false;
+  flowerList = [];
+  flowersLayer.innerHTML = "";
+}
+
+
+  // Buttons
+  openBtn.addEventListener('click', ()=>{
+    overlay.classList.add("active");
+    startFlowerRain();
+    playSequence();
+  });
+
+  closeBtn.addEventListener('click', ()=>{
+    overlay.classList.remove("active");
+    player.pause();
+    player.src="";
+    clearLyrics();
+	stopFlowerRain();
+  });
+})();
+</script>
+</body>
+</html>
